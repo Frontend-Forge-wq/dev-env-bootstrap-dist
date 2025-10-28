@@ -441,7 +441,8 @@ install_optional_tools() {
     done
     return 0
   }
-  if [[ "$INSTALL_ALL_TOOLS" -eq 1 ]]; then
+  # 非交互或 -y 时，按“默认选择是”的策略执行（仍尊重 --skip-iterm / --skip-tools）
+  if [[ "$INSTALL_ALL_TOOLS" -eq 1 || "$NONI" -eq 1 || "$YES" -eq 1 ]]; then
     for item in "${items[@]}"; do
       if [[ "$item" == "iterm2" && "$SKIP_ITERM" -eq 1 ]]; then
         info "已跳过 iTerm2（按参数指定）"
@@ -480,10 +481,10 @@ update_plugins_line() {
   # 若存在 plugins= 行，则替换；若不存在，则插入到 source oh-my-zsh.sh 之前；否则追加到文件末尾
   local desired='plugins=(git z zsh-autosuggestions zsh-syntax-highlighting)'
   if grep -qE '^\s*plugins\s*=\s*\(' "$ZSHRC"; then
-    sed -i.bak "$ZSHRC" -E -e "s/^\s*plugins\s*=\s*\(.*\)\s*$/$desired/"
+    sed -E -i.bak -e "s/^\s*plugins\s*=\s*\(.*\)\s*$/$desired/" "$ZSHRC"
     ok "已更新 ~/.zshrc 插件列表"
   else
-    if grep -qE '^\s*source\s+\$ZSH/.oh-my-zsh\.sh' "$ZSHRC"; then
+    if grep -qE '^\s*source\s+\$ZSH/oh-my-zsh\.sh' "$ZSHRC"; then
       # 插入到 oh-my-zsh 源加载之前
       awk -v ins="$desired" '
         BEGIN{added=0}
@@ -778,7 +779,7 @@ ${browser_rows}
 - VSCode：在命令面板执行 `Shell Command: Install 'code' command in PATH`。
 - 使用 `nvm ls` 与 `nvm use <版本>` 切换 Node 版本。
 - 如需变更 pnpm/npm 全局目录，修改 ~/.zshrc 中 PNPM_HOME 与 NPM_CONFIG_PREFIX。
-- 若 Homebrew 未在路径中，可在 `~/.zprofile` 添加 `eval "$($(command -v brew)/bin/brew shellenv)"`。
+ - 若 Homebrew 未在路径中，可在 `~/.zprofile` 添加 `eval "$(\"$(command -v brew)\" shellenv)"`。
 
 EOF
 
