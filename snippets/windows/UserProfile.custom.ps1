@@ -110,7 +110,8 @@ function eslint { eslint @args }
 function prettier { prettier @args }
 function ts { tsc @args } # TypeScript 编译器
 
-# --- 系统代理 ---
-$env:HTTP_PROXY = "http://127.0.0.1:7890"
-$env:HTTPS_PROXY = "http://127.0.0.1:7890"
+# --- 系统代理（可选）---
+# 默认端口 7890。如需启用，取消下列注释并调整端口。
+# $env:HTTP_PROXY = "http://127.0.0.1:7890"
+# $env:HTTPS_PROXY = "http://127.0.0.1:7890"
 

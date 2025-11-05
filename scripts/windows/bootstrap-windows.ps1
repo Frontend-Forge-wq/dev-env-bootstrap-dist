@@ -33,7 +33,21 @@ $Global:DistBranch = if ($env:DEV_ENV_DIST_BRANCH) { $env:DEV_ENV_DIST_BRANCH } 
 $Global:DistBase = "https://raw.githubusercontent.com/$Global:DistRepo/$Global:DistBranch"
 
 # 0) 可选代理设置
-if ($Proxy) { $env:HTTPS_PROXY = $Proxy; $env:HTTP_PROXY = $Proxy; Info "已设置代理为 $Proxy" }
+$PersistProxy = $false
+if ($Proxy) {
+  $env:HTTPS_PROXY = $Proxy; $env:HTTP_PROXY = $Proxy; Info "已设置代理为 $Proxy"
+} elseif (-not $NonInteractive) {
+  Write-Host "== 代理配置 ==" -ForegroundColor Cyan
+  $useProxy = Read-Host "是否启用 HTTP(S) 代理? (Y/n)"
+  if (($useProxy -eq '') -or ($useProxy -match '^[Yy]$')) {
+    $portSel = Read-Host "输入代理端口 (默认: 7890)"
+    if (-not ($portSel -match '^[0-9]+$') -or [string]::IsNullOrWhiteSpace($portSel)) { $portSel = '7890' }
+    $Proxy = "http://127.0.0.1:$portSel"
+    $env:HTTPS_PROXY = $Proxy; $env:HTTP_PROXY = $Proxy; Ok "代理已启用: $Proxy"
+    $persistAns = Read-Host "是否写入 `$PROFILE 持久化代理设置? (Y/n)"
+    if (($persistAns -eq '') -or ($persistAns -match '^[Yy]$')) { $PersistProxy = $true }
+  } else { Info '已选择不启用代理（可通过 -Proxy 传入或稍后手动配置）。' }
+}
 
 # 1) 确认 winget 存在
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Err '未发现 winget，请先通过 Microsoft Store 安装 App Installer 后重试。'; return }
@@ -294,6 +308,16 @@ Add-ProfileBlock '# FZF PATH bootstrap' $fzfBootstrap
 Add-ProfileBlock '# PSFzf 文件/目录快捷键与 fd 集成' $psfzfIntegration
 Add-ProfileBlock '# 启用自定义 oh-my-posh 主题' $ompInit
 Add-ProfileBlock '# 用户自定义配置（函数/别名）' $customSrc
+
+# 持久化代理设置（如在开头交互选择了持久化）
+if ($PersistProxy -and $Proxy) {
+  $proxyBlk = @"
+# 系统代理设置
+`$env:HTTP_PROXY = "$Proxy"
+`$env:HTTPS_PROXY = "$Proxy"
+"@
+  Add-ProfileBlock '# 系统代理设置' $proxyBlk
+}
 
 # 提供 oh-my-posh 主题切换助手（支持仓库主题与内置主题名），幂等追加
 $ompSwitcher = @"
